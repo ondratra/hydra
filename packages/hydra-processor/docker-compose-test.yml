@@ -37,10 +37,29 @@ services:
       - DEBUG=index-builder:*
       - TYPES_JSON=typedefs.json
     volumes:
-      - ./fixtures/typedefs.json:/home/hydra/packages/hydra-indexer/typedefs.json
+      - ./test/fixtures/typedefs.json:/home/hydra/packages/hydra-indexer/typedefs.json
     command: >
       sh -c "yarn db:bootstrap && yarn start:prod"
     depends_on:
       - node-template
+      - redis
+      - db
+
+  hydra-indexer-gateway:
+    image: hydra-indexer-gateway:latest
+    restart: unless-stopped
+    environment:
+      - WARTHOG_STARTER_DB_DATABASE=indexer-db
+      - WARTHOG_STARTER_DB_HOST=db
+      - WARTHOG_STARTER_DB_PASSWORD=postgres
+      - WARTHOG_STARTER_DB_PORT=5432
+      - WARTHOG_STARTER_DB_USERNAME=postgres
+      - WARTHOG_STARTER_REDIS_URI=redis://redis:6379/0
+      - PORT=4000
+      - DEBUG=index-server:*
+    ports:
+      - "4002:4000"
+    depends_on:
+      - hydra-indexer
       - redis
       - db

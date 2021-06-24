@@ -3,43 +3,54 @@
 set -e
 
 cleanup() {
-    #docker-compose -f docker-compose-test.yml down
-    #(yarn post-e2e-test) || :
-    echo 'cleanup'
+    # kill processor instance
+    yarn pm2 stop processorProcess > /dev/null
+
+    # turn off docker containers
+    docker-compose -f docker-compose-test.yml down
 }
 
 # start docker
+docker-compose -f docker-compose-test.yml up -d db # start database
+echo "starting db, please wait"
+sleep 5 # wait for db to startup
 docker-compose -f docker-compose-test.yml up -d
 
 # prepare processor config
 export DB_USER=postgres
 export DB_PASS=postgres
-export WARTHOG_INTROSPECTION=true
-export WARTHOG_SUBSCRIPTIONS=true
-export WARTHOG_PLAYGROUND=true
-export WARTHOG_DB_SYNCHRONIZE=false
-export WARTHOG_DB_OVERRIDE=false
-export WARTHOG_DB_DATABASE=query_node_processor
-export WARTHOG_DB_USERNAME=postgres
-export WARTHOG_DB_PASSWORD=postgres
-export WARTHOG_DB_HOST=localhost
-export WARTHOG_DB_PORT=5432
-export WARTHOG_APP_PORT=4002
-export WARTHOG_APP_HOST=localhost
-export NODE_ENV=development
-
+export INDEXER_ENDPOINT_URL=http://localhost:4002/graphql
 
 # build processor
 yarn
 yarn build
 
-# prepare clean database
-yarn warthog db:drop
-yarn warthog db:create
-yarn warthog db:migrate
+# generate warthog files (needed for db migration)
+#yarn warthog generate myTestTry
 
-# run processor
-yarn run-dev run --manifest test/fixtures/manifest.yml
+#THIS_DIR_PATH=`dirname "$(readlink -f "$0")"`
+#echo "hydra-cli codegen --no-install --schema \"${THIS_DIR_PATH}/test/schema.graphql\""
+#hydra-cli codegen --no-install --schema "${THIS_DIR_PATH}/test/schema.graphql"
+##exit 1
+#
+## prepare clean database
+##yarn warthog db:drop
+##yarn warthog db:create
+##yarn warthog db:migrate
+#
+#cd generated/graphql-server
+#yarn db:drop
+#yarn db:create
+#cd ../..
+
+# prepare db
+yarn run-dev migrate
+
+# running via pm2 is needed to prevent node (sub)process from surviving `kill -9`
+echo "yarn run-dev run --manifest test/fixtures/manifest.yml" > tmp.sh # prepare script that can be run by pm2
+yarn pm2 start --name processorProcess tmp.sh > /dev/null
+rm tmp.sh # delete temporary script file
+
 # run tests
 yarn test:run
 
