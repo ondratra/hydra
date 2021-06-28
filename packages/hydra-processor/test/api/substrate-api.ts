@@ -3,12 +3,10 @@ import { createTestKeyring } from '@polkadot/keyring/testing'
 import { Hash } from '@polkadot/types/interfaces'
 import Container from 'typedi'
 import pWaitFor from 'p-wait-for'
+import * as fs from 'fs'
 
 const typesSpec = {
-  'node-template': {
-    Address: 'AccountId',
-    LookupSource: 'AccountId',
-  },
+  'node-template': JSON.parse(fs.readFileSync(__dirname + '/../fixtures/typedefs.json', 'utf8')),
 }
 
 export async function transfer(
