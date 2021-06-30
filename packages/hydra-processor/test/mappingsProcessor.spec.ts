@@ -11,6 +11,10 @@ import {
 import { GraphQLClient } from 'graphql-request'
 import { SubscriptionClient } from 'graphql-subscriptions-client'
 import { subscribeToProcessorStatus } from './api/processor-api'
+import dbConfig from '../src/db/ormconfig'
+//import { createConnection } from 'typeorm'
+import { parseManifest } from '../src/start/manifest'
+import { createDBConnection } from '../src/db'
 
 chai.use(spies)
 
@@ -31,7 +35,7 @@ describe('MappingsProcessor', () => {
     const blockHeight = await transfer(ALICE, BOB, txAmount)
     console.log(blockHeight)
 
-    await waitForProcessorToCatchUp(blockHeight)
+    //await waitForProcessorToCatchUp(blockHeight)
   })
 })
 
@@ -41,6 +45,8 @@ function setupEnvironment() {
   before(async () => {
     dotenv.config({ path: __dirname + '/.env' })
     await createApi(process.env.WS_PROVIDER_URI || '')
+
+    await synchronizeDb()
 
     initProcessor()
   })
@@ -56,6 +62,37 @@ function setupEnvironment() {
   //afterEach(() => {
   //  sandbox.restore()
   //})
+}
+
+async function synchronizeDb() {
+  /*
+  //const _config = dbConfig()
+  const _config = {
+    ...dbConfig(),
+    synchronize: true,
+  }
+
+  await createDBConnection(manifest.entities)
+
+  // create connection and
+  const connection = await createConnection(_config)
+console.log('syncing db', _config, _config.entities)
+*/
+
+console.log(__dirname + '/fixtures/manifest.yml')
+  const manifest = parseManifest(__dirname + '/fixtures/manifest.yml')
+
+  const connection = await createDBConnection(manifest.entities)
+
+
+
+
+
+  await connection.synchronize()
+console.log('syncing db done')
+
+  // disconnect
+  await connection.close()
 }
 
 function initProcessor() {
@@ -75,7 +112,7 @@ console.log('-----aaaa', process.env.PROCESSOR_ENDPOINT_URL)
       },
     })
   )
-console.log('Subscribing to processor status')
+
   subscribeToProcessorStatus()
 }
 

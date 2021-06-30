@@ -23,6 +23,7 @@ const config: () => ConnectionOptions = () => {
     },
     logging: process.env.TYPEORM_LOGGING === 'true',
     namingStrategy: new SnakeNamingStrategy(),
+    //synchronize: true,
   } as ConnectionOptions
 }
 

@@ -11,6 +11,7 @@ export async function createDBConnection(
   entities: any[] = []
 ): Promise<Connection> {
   const _config = config()
+console.log('db confff', _config)
   entities.map((e) => _config.entities?.push(e))
   debug(`DB config: ${JSON.stringify(_config, null, 2)}`)
   return createConnection(_config)

@@ -1,20 +1,36 @@
+import { SubstrateEvent, DatabaseManager } from '@joystream/hydra-common'
+import { TestEntity } from './test-entities'
+
 /* eslint-disable */
-export function balances_Transfer() {
+export async function balances_Transfer(db: DatabaseManager, event: SubstrateEvent) {
+
+  await tryToSaveNullCharacter(db)
   console.log('Here')
 
   throw 'niiiice'
 }
 
-export function balances_TransferCall() {
+export async function balances_TransferCall() {
   console.log('Here')
 }
 
-export function handleSudoEvent() {}
-export function handleSudoCall() {}
-export function preBlockHook1(aaa: any, bbb: any) {
-    console.log(aaa,bbb)
-    console.log('preBlockHook1')
+export async function handleSudoEvent() {}
+export async function handleSudoCall() {}
+export async function preBlockHook1(aaa: any, bbb: any) {
+  console.log(aaa,bbb)
+  console.log('preBlockHook1')
 }
-export function preBlockHook2() {}
-export function postBlockHook1() {}
-export function postBlockHook2() {}
+export async function preBlockHook2() {}
+export async function postBlockHook1() {}
+export async function postBlockHook2() {}
+
+async function tryToSaveNullCharacter(db: DatabaseManager) {
+  const nullCharacter = '\0'
+
+  const testEntity = new TestEntity({
+      //description: "asdfasdf",
+      description: nullCharacter,
+  })
+
+  await db.save<TestEntity>(testEntity)
+}

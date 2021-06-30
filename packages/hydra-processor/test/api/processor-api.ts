@@ -21,6 +21,7 @@ export const getSubClient = () =>
   Container.get<SubscriptionClient>('SubscriptionClient')
 
 export function subscribeToProcessorStatus(): void {
+  console.log('subscribing to processor status')
   getSubClient()
     .request({ query: PROCESSOR_SUBSCRIPTION })
     .subscribe({
@@ -36,6 +37,10 @@ export function subscribeToProcessorStatus(): void {
 }
 
 export async function getProcessorStatus(): Promise<ProcessorStatus> {
-  await pWaitFor(() => processorStatus !== undefined)
+  //await pWaitFor(() => processorStatus !== undefined)
+  await pWaitFor(() => {
+    //console.log('wait iteraration')
+    return processorStatus !== undefined
+  })
   return processorStatus as ProcessorStatus
 }

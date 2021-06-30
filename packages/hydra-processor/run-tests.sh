@@ -13,7 +13,8 @@ cleanup() {
 # start docker
 docker-compose -f docker-compose-test.yml up -d db # start database
 echo "starting db, please wait"
-sleep 5 # wait for db to startup
+#sleep 5 # wait for db to startup
+sleep 2 # wait for db to startup
 docker-compose -f docker-compose-test.yml up -d
 
 # prepare processor config
@@ -45,6 +46,8 @@ yarn build
 
 # prepare db
 yarn run-dev migrate
+
+exit 1
 
 # running via pm2 is needed to prevent node (sub)process from surviving `kill -9`
 echo "yarn run-dev run --manifest test/fixtures/manifest.yml" > tmp.sh # prepare script that can be run by pm2
