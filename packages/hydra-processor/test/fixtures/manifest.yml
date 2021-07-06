@@ -18,7 +18,7 @@ mappings:
     - event: Sudo.batchCall
       handler: handleSudoEvent
 
-    # membership
+    # balances
     - event: balances.Transfer
       handler: balances_Transfer(DatabaseManager, SubstrateEvent)
   extrinsicHandlers:

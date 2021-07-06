@@ -1,36 +1,61 @@
 import { SubstrateEvent, DatabaseManager } from '@joystream/hydra-common'
 import { TestEntity } from './test-entities'
+import { EntityManager } from 'typeorm'
+import { getMappingExecutor } from '../../src/executor'
 
 /* eslint-disable */
 export async function balances_Transfer(db: DatabaseManager, event: SubstrateEvent) {
-
+  // try to save UTF-8 null character ('\0') to db -> will be checked by test
   await tryToSaveNullCharacter(db)
-  console.log('Here')
-
-  throw 'niiiice'
 }
 
-export async function balances_TransferCall() {
-  console.log('Here')
-}
+export async function balances_TransferCall() {}
 
 export async function handleSudoEvent() {}
 export async function handleSudoCall() {}
-export async function preBlockHook1(aaa: any, bbb: any) {
-  console.log(aaa,bbb)
-  console.log('preBlockHook1')
-}
+export async function preBlockHook1() {}
 export async function preBlockHook2() {}
 export async function postBlockHook1() {}
 export async function postBlockHook2() {}
 
+/*
+  Tries to save UTF-8 null character ('\0') to db.
+*/
 async function tryToSaveNullCharacter(db: DatabaseManager) {
-  const nullCharacter = '\0'
+  const entityManager = (await getMappingExecutor() as any as {entityManager: EntityManager}).entityManager
 
-  const testEntity = new TestEntity({
-      //description: "asdfasdf",
-      description: nullCharacter,
-  })
+  const dbCommand = async () => {
+    const nullCharacter = '\0'
 
-  await db.save<TestEntity>(testEntity)
+    const testEntity = new TestEntity({
+        description: nullCharacter
+    })
+
+    await db.save<TestEntity>(testEntity)
+  }
+
+  await tryDbCommand(entityManager, dbCommand)
+}
+
+/*
+  Tries to run db command and makes sure connection doesn't get broken if command fails.
+*/
+async function tryDbCommand(entityManager: EntityManager, dbCommand: () => Promise<void>) {
+  const savepointName = 'temporarySavepoint'
+
+  try {
+    // save current transaction state
+    await entityManager.query(`SAVEPOINT ${savepointName}`)
+
+    // run db command that may fail
+    await dbCommand()
+  } catch (error) {
+     console.log('db error', error) // uncomment for debugging db error
+
+    // rollback to savepoint
+    await entityManager.query(`ROLLBACK TO SAVEPOINT ${savepointName}`)
+  }
+
+  // delete savepoint and continue like it never existed
+  await entityManager.query(`RELEASE SAVEPOINT ${savepointName}`)
 }
