@@ -30,7 +30,7 @@ yarn build
 # prepare db
 yarn run-dev migrate
 
-#exit 1
+#exit 1 # uncomment during debugging and run rest of commands manually as you need
 
 # running via pm2 is needed to prevent node (sub)process from surviving `kill -9`
 echo "yarn run-dev run --manifest test/fixtures/manifest.yml" > tmp.sh # prepare script that can be run by pm2
