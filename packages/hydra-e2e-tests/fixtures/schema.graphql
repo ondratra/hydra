@@ -42,6 +42,7 @@ type Account @entity {
 
 type Miserable @variant {
   hates: String!
+  loves: [String]!
 }
 
 type HappyPoor @variant {
@@ -124,4 +125,5 @@ type EventParam @jsonField {
 type SystemEvent @entity {
   id: ID!
   params: EventParam!
+  arrayField: [String!]
 }

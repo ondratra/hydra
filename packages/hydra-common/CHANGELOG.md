@@ -3,6 +3,42 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 3.1.0-alpha.7 (2021-06-28)
+
+
+### Bug Fixes
+
+* **hydra-cli:** fix array fields ([6c8aa14](https://github.com/Joystream/hydra/commit/6c8aa144a58cb3186cc28991382722112ab5f15e))
+
+
+
+## 3.1.0-alpha.6 (2021-06-28)
+
+
+### Bug Fixes
+
+* **hydra-indexer:** bump polkadot-api to 4.16.2 ([ec50404](https://github.com/Joystream/hydra/commit/ec50404742ffb5e0eb0fcb7ac5ddac609b712c2b))
+
+
+
+## 3.1.0-alpha.5 (2021-06-22)
+
+
+### Bug Fixes
+
+* **hydra-indexer:** bump polkadot version to 4.15.1 ([52c215e](https://github.com/Joystream/hydra/commit/52c215eb796f01e06914d55ae819f17456f85205))
+
+
+
+## 3.1.0-alpha.4 (2021-06-22)
+
+
+### Bug Fixes
+
+* **hydra-cli:** render variant fields of array type ([#429](https://github.com/Joystream/hydra/issues/429)) ([8a31e5d](https://github.com/Joystream/hydra/commit/8a31e5df510aa5d7359e1f97abfd9a64343c1fb8))
+
+
+
 ## 3.1.0-alpha.3 (2021-06-21)
 
 
