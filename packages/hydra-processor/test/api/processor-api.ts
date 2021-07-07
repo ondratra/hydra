@@ -21,12 +21,10 @@ export const getSubClient = () =>
   Container.get<SubscriptionClient>('SubscriptionClient')
 
 export function subscribeToProcessorStatus(): void {
-  console.log('subscribing to processor status')
   getSubClient()
     .request({ query: PROCESSOR_SUBSCRIPTION })
     .subscribe({
       next({ data }: unknown) {
-        console.log('processor subscription data', data)
         if (data) {
           processorStatus = (data as {
             stateSubscription: ProcessorStatus

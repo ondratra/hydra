@@ -26,30 +26,38 @@ const txAmount = 10000
 describe('MappingsProcessor', () => {
   const environment = setupEnvironment()
 
-  it('does my little test', async () => {
-    console.log('ok aaaa')
-
-    const blockHeight = await transfer(ALICE, BOB, txAmount)
-    console.log(blockHeight)
+  it('sanitizes UTF-8 null character(s)', async () => {
+    // this test relies on mapping balances_Transfer - see fixtures/test-mappings.ts
 
     const db = environment.db.manager
 
+    // transfer balance from Alice to Bob (transfer has mapping associated)
+    const blockHeight = await transfer(ALICE, BOB, txAmount)
+
+    // make sure mappings block has been processed
     await waitForProcessorToCatchUp(db, blockHeight)
 
+    // retrieve db record created by event mapping
     const testEntity = await db.findOne(TestEntity, { order: { primaryKey: 'DESC' } })
 
+    // ensure entity was sucessfully saved in mapping
     assert.isOk(testEntity)
 
-    // this escape from is teoretically not needed, but chai types miss assert guards (available in TS 3.7+)
+    // this escape is teoretically not needed, but chai types misses assert guards (available in TS 3.7+)
     if (!testEntity) {
       return
     }
 
+    // ensure UTF-8 null character(s) were replaced by empty string
     assert.equal(testEntity.description, '')
   })
 })
 
+/*
+  Prepare common environment needed for tests' runs.
+*/
 function setupEnvironment() {
+  // ensure WebSocket is available globally (facilitates outside connection)
   globalThis.WebSocket = require('ws')
 
   const environment: {db: Connection} = {
@@ -57,15 +65,17 @@ function setupEnvironment() {
   }
 
   before(async () => {
+    // load configuration and create api
     dotenv.config({ path: __dirname + '/.env' })
     await createApi(process.env.WS_PROVIDER_URI || '')
 
+    // synchronize db
     environment.db = await synchronizeDb()
   })
 
   after(async () => {
+    // close api connection
     const api = Container.get<ApiPromise>('ApiPromise')
-    console.log('Disconnecting from the chain')
     await api.disconnect()
 
     // disconnect db if needed
@@ -81,15 +91,21 @@ function setupEnvironment() {
   Synchronizes DB with entites from both test manifest.
 */
 async function synchronizeDb() {
+  // read test manifest
   const manifest = parseManifest(__dirname + '/fixtures/manifest.yml')
 
+  // connect to db
   const connection = await createDBConnection(manifest.entities)
 
+  // synchronize defined typeorm entites with database
   await connection.synchronize()
 
   return connection
 }
 
+/*
+  Periodically checks processor block information from the database and waits until the given block is processed.
+*/
 async function waitForProcessorToCatchUp(db: EntityManager, blockHeight: number) {
   // wait until the indexer indexes the block and the processor picks it up
   await pWaitFor(async () => {

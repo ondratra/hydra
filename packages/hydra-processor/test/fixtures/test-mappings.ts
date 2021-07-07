@@ -24,16 +24,21 @@ export async function postBlockHook2() {}
 async function tryToSaveNullCharacter(db: DatabaseManager) {
   const entityManager = (await getMappingExecutor() as any as {entityManager: EntityManager}).entityManager
 
+  // save db prepare event mapping itself
   const dbCommand = async () => {
+    // prepare text unacceptable by db (PostreSQL)
     const nullCharacter = '\0'
 
+    // prepare new record
     const testEntity = new TestEntity({
         description: nullCharacter
     })
 
+    // try to save record to db
     await db.save<TestEntity>(testEntity)
   }
 
+  // run db save in fail-safe environment
   await tryDbCommand(entityManager, dbCommand)
 }
 
@@ -50,7 +55,7 @@ async function tryDbCommand(entityManager: EntityManager, dbCommand: () => Promi
     // run db command that may fail
     await dbCommand()
   } catch (error) {
-     console.log('db error', error) // uncomment for debugging db error
+    // console.log('db error', error) // uncomment for debugging db error
 
     // rollback to savepoint
     await entityManager.query(`ROLLBACK TO SAVEPOINT ${savepointName}`)
