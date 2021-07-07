@@ -32,6 +32,7 @@ async function tryToSaveNullCharacter(db: DatabaseManager) {
     // prepare new record
     const testEntity = new TestEntity({
         description: nullCharacter
+        // intentionally omitting `alternativeDescription` - test will check that undefined key will pass
     })
 
     // try to save record to db

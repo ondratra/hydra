@@ -18,6 +18,9 @@ export class TestEntity extends BaseEntity {
     @Column()
     description!: string
 
+    @Column()
+    alternativeDescription?: string
+
     constructor(init?: Partial<TestEntity>) {
         super()
         Object.assign(this, init)

@@ -34,8 +34,7 @@ function sanitizeEntity(entity: Entity, entityMetadata: EntityMetadata) {
   Replaces string made of only UTF-8 null characters by an empty string.
 */
 function sanitizeNullCharacter(entity: Record<string, string>, field: string) {
-  console.log('myentitty', entity, field)
-  if (!entity[field].match('\0+')) {
+  if (!entity[field] || !entity[field].match('\0+')) {
     return
   }
 
