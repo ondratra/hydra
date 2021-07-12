@@ -1,10 +1,9 @@
 import { getConnection, EntityManager } from 'typeorm'
-import * as shortid from 'shortid'
 import { getConfig as conf } from '../start/config'
 import Debug from 'debug'
 import { info } from '../util/log'
 import { BlockData } from '../queue'
-import { getMappingsLookup, IMappingExecutor } from '.'
+import { getDeterministicIdManager, getMappingsLookup, IMappingExecutor } from '.'
 import { IMappingsLookup } from './IMappingsLookup'
 import {
   DeepPartial,
@@ -12,11 +11,13 @@ import {
   DatabaseManager,
 } from '@joystream/hydra-common'
 import { TxAwareBlockContext } from './tx-aware'
+import { DeterministicIdManager } from './DeterministicIdManager'
 
 const debug = Debug('hydra-processor:mappings-executor')
 
 export class TransactionalExecutor implements IMappingExecutor {
   private mappingsLookup!: IMappingsLookup
+  private deterministicIdManager!: DeterministicIdManager
 
   // "expose" transaction EntityManager to tests (is meant to be read despite being private)
   private entityManager: EntityManager | null = null
@@ -24,11 +25,12 @@ export class TransactionalExecutor implements IMappingExecutor {
   async init(): Promise<void> {
     info('Initializing mappings executor')
     this.mappingsLookup = await getMappingsLookup()
+    this.deterministicIdManager = await getDeterministicIdManager()
   }
 
   async executeBlock(
     blockData: BlockData,
-    onSuccess: (data: BlockData) => Promise<void>
+    onSuccess: (data: BlockData) => Promise<void>,
   ): Promise<void> {
     await getConnection().transaction(async (entityManager: EntityManager) => {
       this.entityManager = entityManager
@@ -80,6 +82,9 @@ export class TransactionalExecutor implements IMappingExecutor {
 
       await onSuccess({ ...blockData, entityManager } as TxAwareBlockContext)
 
+      // ensure deterministic id state is saved inside of transaction
+      await this.deterministicIdManager.save()
+
       this.entityManager = null
     })
   }
@@ -91,11 +96,12 @@ export class TransactionalExecutor implements IMappingExecutor {
  */
 export function makeDatabaseManager(
   entityManager: EntityManager,
-  blockData: BlockData
+  blockData: BlockData,
 ): DatabaseManager {
   return {
     save: async <T>(entity: DeepPartial<T>): Promise<void> => {
-      entity = fillRequiredWarthogFields(entity, blockData)
+      entity = await fillRequiredWarthogFields(entity, blockData)
+
       await entityManager.save(entity)
     },
     remove: async <T>(entity: DeepPartial<T>): Promise<void> => {
@@ -127,17 +133,21 @@ export function makeDatabaseManager(
  *
  * @param entity: DeepPartial<T>
  */
-function fillRequiredWarthogFields<T>(
+async function fillRequiredWarthogFields<T>(
   entity: DeepPartial<T>,
-  { block }: BlockData
-): DeepPartial<T> {
+  { block }: BlockData,
+): Promise<DeepPartial<T>> {
+  let deterministicId = !entity.hasOwnProperty('id') || !entity.hasOwnProperty('createdById')
+    ? await (await getDeterministicIdManager()).generateNextId()
+    : 0 // value doesn't matter in this case as it will never be used
+
   // eslint-disable-next-line no-prototype-builtins
   if (!entity.hasOwnProperty('id')) {
-    Object.assign(entity, { id: shortid.generate() })
+    Object.assign(entity, { id: deterministicId })
   }
   // eslint-disable-next-line no-prototype-builtins
   if (!entity.hasOwnProperty('createdById')) {
-    Object.assign(entity, { createdById: shortid.generate() })
+    Object.assign(entity, { createdById: deterministicId })
   }
   // eslint-disable-next-line no-prototype-builtins
   if (!entity.hasOwnProperty('version')) {

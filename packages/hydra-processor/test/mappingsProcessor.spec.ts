@@ -15,7 +15,8 @@ import * as path from 'path'
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 const BOB = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
 
-const txAmount = 10000
+const txAmount1 = 10000
+const txAmount2 = 12345
 
 describe('MappingsProcessor', () => {
   const environment = setupEnvironment()
@@ -26,15 +27,13 @@ describe('MappingsProcessor', () => {
     const db = environment.db.manager
 
     // transfer balance from Alice to Bob (transfer has mapping associated)
-    const blockHeight = await transfer(ALICE, BOB, txAmount)
+    const blockHeight = await transfer(ALICE, BOB, txAmount1)
 
     // make sure mappings block has been processed
     await waitForProcessorToCatchUp(db, blockHeight)
 
     // retrieve db record created by event mapping
-    const testEntity = await db.findOne(TestEntity, {
-      order: { primaryKey: 'DESC' },
-    })
+    const testEntity = await db.findOne(TestEntity, { order: { primaryKey: 'DESC' } })
 
     // ensure entity was sucessfully saved in mapping
     assert.isOk(testEntity)
@@ -46,6 +45,32 @@ describe('MappingsProcessor', () => {
 
     // ensure UTF-8 null character(s) were replaced by empty string
     assert.equal(testEntity.description, '')
+  })
+
+  it('deterministic ids', async () => {
+    // this test relies on mapping balances_Transfer - see fixtures/test-mappings.ts
+
+    const db = environment.db.manager
+
+    const newestEntity = await db.findOne(TestEntity, { order: { primaryKey: 'DESC' } })
+    const idBeforeTest = (newestEntity && newestEntity.id && parseInt(newestEntity.id)) || 0
+
+    // transfer balance twice from Alice to Bob (transfer has mapping associated)
+    const transferCount = 2
+    await transfer(ALICE, BOB, txAmount1)
+    const blockHeight = await transfer(ALICE, BOB, txAmount2)
+
+    // make sure mappings block has been processed
+    await waitForProcessorToCatchUp(db, blockHeight)
+
+    // retrieve db record created by event mapping
+    const testEntities = await db.find(TestEntity, { order: { primaryKey: 'DESC' }, take: transferCount })
+    testEntities.reverse() // reorder entites in ascending order
+
+    // ensure both entities was sucessfully saved in mapping
+    assert.equal(testEntities.length, transferCount)
+    assert.equal(testEntities[0].id, (idBeforeTest + 1).toString())
+    assert.equal(testEntities[1].id, (idBeforeTest + 2).toString())
   })
 })
 
